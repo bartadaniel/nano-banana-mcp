@@ -1,0 +1,4 @@
+node_modules/
+dist/
+nano-banana-output/
+*.tgz

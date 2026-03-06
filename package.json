@@ -1,0 +1,43 @@
+{
+  "name": "nano-banana-mcp",
+  "version": "0.1.0",
+  "description": "Standalone MCP server for generating and editing images with Google Gemini",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "nano-banana-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "mcp",
+    "gemini",
+    "image-generation",
+    "ai",
+    "claude",
+    "model-context-protocol"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bartadaniel/nano-banana-mcp"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@google/genai": "^1.44.0",
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}
