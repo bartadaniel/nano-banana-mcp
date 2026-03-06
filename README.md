@@ -13,7 +13,7 @@ Standalone MCP server for generating and editing images with Google Gemini. No G
   "mcpServers": {
     "nano-banana": {
       "command": "npx",
-      "args": ["-y", "nano-banana-mcp"],
+      "args": ["-y", "@daniel.barta/nano-banana-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-api-key",
         "GEMINI_MODEL": "gemini-2.5-flash-image"
