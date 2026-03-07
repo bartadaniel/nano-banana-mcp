@@ -45,7 +45,21 @@ function buildConfig(options?: GenerateOptions): GenerateContentConfig {
   return config;
 }
 
+function checkSafetyBlock(response: GenerateContentResponse): void {
+  const blockReason = response.promptFeedback?.blockReason;
+  if (blockReason) {
+    throw new Error(`Gemini blocked the prompt: ${blockReason}`);
+  }
+
+  const finishReason = response.candidates?.[0]?.finishReason;
+  if (finishReason && finishReason !== "STOP") {
+    throw new Error(`Gemini stopped generating: ${finishReason}`);
+  }
+}
+
 function extractImageFromResponse(response: GenerateContentResponse): ImageResult {
+  checkSafetyBlock(response);
+
   const parts = response.candidates?.[0]?.content?.parts;
   if (!parts) throw new Error("No response from Gemini");
 
@@ -138,6 +152,8 @@ export async function describeImage(
       },
     ],
   });
+
+  checkSafetyBlock(response);
 
   const parts = response.candidates?.[0]?.content?.parts;
   if (!parts) throw new Error("No description from Gemini");
