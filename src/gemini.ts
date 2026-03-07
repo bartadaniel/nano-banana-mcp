@@ -3,6 +3,7 @@ import {
   type GenerateContentConfig,
   type GenerateContentResponse,
   type ImageConfig,
+  type Part,
 } from "@google/genai";
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash-image";
@@ -45,23 +46,37 @@ function buildConfig(options?: GenerateOptions): GenerateContentConfig {
   return config;
 }
 
-function checkSafetyBlock(response: GenerateContentResponse): void {
+function getValidCandidateParts(response: GenerateContentResponse, errorMessage: string): Part[] {
   const blockReason = response.promptFeedback?.blockReason;
   if (blockReason) {
-    throw new Error(`Gemini blocked the prompt: ${blockReason}`);
+    const detail = response.promptFeedback?.blockReasonMessage;
+    throw new Error(
+      `Gemini blocked the prompt: ${blockReason}${detail ? ` — ${detail}` : ""}`
+    );
   }
 
-  const finishReason = response.candidates?.[0]?.finishReason;
-  if (finishReason && finishReason !== "STOP") {
-    throw new Error(`Gemini stopped generating: ${finishReason}`);
+  const candidates = response.candidates ?? [];
+  if (candidates.length === 0) throw new Error(errorMessage);
+
+  for (const candidate of candidates) {
+    const finishReason = candidate.finishReason;
+    if (!finishReason || finishReason === "STOP") {
+      return candidate.content?.parts ?? [];
+    }
   }
+
+  const reasons = candidates
+    .map((c) => {
+      const reason = c.finishReason;
+      const detail = c.finishMessage;
+      return detail ? `${reason} — ${detail}` : reason;
+    })
+    .join("; ");
+  throw new Error(`Gemini stopped generating: ${reasons}`);
 }
 
 function extractImageFromResponse(response: GenerateContentResponse): ImageResult {
-  checkSafetyBlock(response);
-
-  const parts = response.candidates?.[0]?.content?.parts;
-  if (!parts) throw new Error("No response from Gemini");
+  const parts = getValidCandidateParts(response, "No response from Gemini");
 
   let imageData: { base64: string; mimeType: string } | null = null;
   const textParts: string[] = [];
@@ -153,10 +168,7 @@ export async function describeImage(
     ],
   });
 
-  checkSafetyBlock(response);
-
-  const parts = response.candidates?.[0]?.content?.parts;
-  if (!parts) throw new Error("No description from Gemini");
+  const parts = getValidCandidateParts(response, "No description from Gemini");
 
   const text = parts
     .filter((part) => part.text)
