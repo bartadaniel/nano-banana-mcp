@@ -1,5 +1,7 @@
 # nano-banana-mcp
 
+[![npm](https://img.shields.io/npm/v/@daniel.barta/nano-banana-mcp)](https://www.npmjs.com/package/@daniel.barta/nano-banana-mcp)
+
 Standalone MCP server for generating and editing images with Google Gemini. No Gemini CLI required -- just an API key.
 
 ## Quick Start
