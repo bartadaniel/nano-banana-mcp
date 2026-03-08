@@ -352,10 +352,12 @@ describe("getOutputDir", () => {
     assert(dir.startsWith("/"), `expected absolute path, got: ${dir}`);
   });
 
-  it("defaults to ~/nano-banana-output when OUTPUT_DIR not set", () => {
-    // This test verifies the default unless OUTPUT_DIR is explicitly set in env
-    if (!process.env.OUTPUT_DIR) {
-      const dir = getOutputDir();
+  it("contains 'nano-banana-output' in the path (default or custom)", () => {
+    const dir = getOutputDir();
+    if (process.env.OUTPUT_DIR) {
+      // When OUTPUT_DIR is explicitly set, getOutputDir should return it
+      assert.equal(dir, resolve(process.env.OUTPUT_DIR));
+    } else {
       assert(dir.endsWith("nano-banana-output"), `expected path ending in nano-banana-output, got: ${dir}`);
     }
   });
@@ -406,6 +408,24 @@ describe("path resolution strategies", () => {
       assert.equal(result.mimeType, "image/png");
     } finally {
       await rm(testFile);
+    }
+  });
+
+  // Strategy 4: basename fallback — pass "fakedir/filename.png" where only
+  // the basename exists in OUTPUT_DIR (not the full relative path)
+  it("finds file by basename when given a path with directory prefix", async () => {
+    const base64 = RED_PIXEL_PNG.toString("base64");
+    const filePath = await saveImage(base64, "image/png", "strategy4-test");
+    const name = basename(filePath);
+
+    try {
+      // Pass a non-existent subdir prefix — strategy 3 (resolve(OUTPUT_DIR, path))
+      // will fail because "nonexistent-subdir/name" doesn't exist, but strategy 4
+      // (resolve(OUTPUT_DIR, basename(path))) should find it
+      const result = await readImageAsBase64(`nonexistent-subdir/${name}`);
+      assert.equal(result.base64, base64);
+    } finally {
+      await rm(filePath);
     }
   });
 });

@@ -129,7 +129,7 @@ Use the local build in your config:
 npm test
 ```
 
-Runs 27 unit tests using Node.js built-in test runner (`node:test`). Tests cover error classes, Gemini API interactions (mocked), and file operations (real filesystem).
+Runs unit tests using Node.js built-in test runner (`node:test`). Tests cover error classes, all documented Gemini API response codes (BlockedReason, FinishReason), config shapes, image extraction edge cases, file operations, path security, and thumbnail generation.
 
 ## License
 

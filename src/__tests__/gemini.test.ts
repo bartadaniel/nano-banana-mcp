@@ -334,6 +334,34 @@ describe("generateImage", () => {
     assert.equal(contents[0].role, "user");
     assert.equal(contents[0].parts[0].text, "a cat");
   });
+
+  // Edge case: n=0 produces empty result array (no validation in code)
+  it("returns empty array when n=0", async () => {
+    let callCount = 0;
+    _setClientForTesting(makeMockClient(() => {
+      callCount++;
+      return makeImageResponse();
+    }));
+
+    const results = await generateImage("a cat", { n: 0 });
+    assert.equal(results.length, 0);
+    assert.equal(callCount, 0, "should make zero API calls");
+  });
+
+  // Edge case: if one parallel call fails, Promise.all rejects with the first error
+  it("rejects with first error when one of n parallel calls fails", async () => {
+    let callCount = 0;
+    _setClientForTesting(makeMockClient(() => {
+      callCount++;
+      if (callCount === 2) return makeBlockedResponse("SAFETY", "unsafe");
+      return makeImageResponse();
+    }));
+
+    await assert.rejects(() => generateImage("test", { n: 3 }), (err: unknown) => {
+      assert(err instanceof PromptBlockedError);
+      return true;
+    });
+  });
 });
 
 // ===================================================================
@@ -436,6 +464,20 @@ describe("editImage", () => {
 
     await editImage("fix", [{ base64: "x", mimeType: "image/png" }]);
     assert.equal(capturedModel, getModelName());
+  });
+
+  // Edge case: empty images array sends only text part
+  it("sends only text part when images array is empty", async () => {
+    let capturedParts: unknown[] = [];
+    _setClientForTesting(makeMockClient((req) => {
+      const contents = req.contents as Array<{ parts: unknown[] }>;
+      capturedParts = contents[0].parts;
+      return makeImageResponse();
+    }));
+
+    await editImage("create from scratch", []);
+    assert.equal(capturedParts.length, 1);
+    assert.equal((capturedParts[0] as { text: string }).text, "create from scratch");
   });
 });
 
@@ -644,6 +686,19 @@ describe("FinishReason handling", () => {
 
     const results = await generateImage("test");
     assert.equal(results.length, 1);
+  });
+
+  // All non-STOP documented finishReasons should throw GenerationStoppedError
+  // FINISH_REASON_UNSPECIFIED is a truthy string — our code only treats
+  // falsy (!finishReason) or "STOP" as success, so this is an error case
+  it("throws GenerationStoppedError for FINISH_REASON_UNSPECIFIED (truthy non-STOP string)", async () => {
+    _setClientForTesting(makeMockClientStatic(makeFinishReasonResponse("FINISH_REASON_UNSPECIFIED")));
+
+    await assert.rejects(() => generateImage("test"), (err: unknown) => {
+      assert(err instanceof GenerationStoppedError);
+      assert(err.reasons.includes("FINISH_REASON_UNSPECIFIED"));
+      return true;
+    });
   });
 
   // All non-STOP documented finishReasons should throw GenerationStoppedError
