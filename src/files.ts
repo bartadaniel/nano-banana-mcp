@@ -2,6 +2,7 @@ import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { resolve, extname, basename, sep } from "node:path";
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
+import sharp from "sharp";
 import { AccessDeniedError, ImageNotFoundError } from "./errors.js";
 
 const OUTPUT_DIR = process.env.OUTPUT_DIR || resolve(homedir(), "nano-banana-output");
@@ -124,4 +125,19 @@ function resolveImagePath(filePath: string): string {
     resolve(OUTPUT_DIR, basename(filePath)),
   ];
   throw new ImageNotFoundError(filePath, triedPaths);
+}
+
+const THUMBNAIL_MAX_SIZE = 512;
+const THUMBNAIL_QUALITY = 80;
+
+export async function createThumbnail(
+  base64: string,
+  mimeType: string
+): Promise<{ base64: string; mimeType: "image/jpeg" }> {
+  const input = Buffer.from(base64, "base64");
+  const output = await sharp(input)
+    .resize(THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, { fit: "inside" })
+    .jpeg({ quality: THUMBNAIL_QUALITY })
+    .toBuffer();
+  return { base64: output.toString("base64"), mimeType: "image/jpeg" };
 }

@@ -5,7 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { generateImage, editImage, describeImage } from "./gemini.js";
-import { saveImage, readImageAsBase64 } from "./files.js";
+import { saveImage, readImageAsBase64, createThumbnail } from "./files.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -42,6 +42,7 @@ server.registerTool(
   async ({ prompt, aspectRatio, size }) => {
     const result = await generateImage(prompt, { aspectRatio, size });
     const filePath = await saveImage(result.base64, result.mimeType, prompt);
+    const thumbnail = await createThumbnail(result.base64, result.mimeType);
 
     const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [
       { type: "text", text: `Image saved to: ${filePath}` },
@@ -49,7 +50,7 @@ server.registerTool(
     if (result.text) {
       content.push({ type: "text", text: result.text });
     }
-    content.push({ type: "image", data: result.base64, mimeType: result.mimeType });
+    content.push({ type: "image", data: thumbnail.base64, mimeType: thumbnail.mimeType });
 
     return { content };
   }
@@ -77,6 +78,7 @@ server.registerTool(
       await readImageAsBase64(filePath);
     const result = await editImage(prompt, inputBase64, inputMime, { aspectRatio, size });
     const savedPath = await saveImage(result.base64, result.mimeType, prompt);
+    const thumbnail = await createThumbnail(result.base64, result.mimeType);
 
     const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [
       { type: "text", text: `Edited image saved to: ${savedPath}` },
@@ -84,7 +86,7 @@ server.registerTool(
     if (result.text) {
       content.push({ type: "text", text: result.text });
     }
-    content.push({ type: "image", data: result.base64, mimeType: result.mimeType });
+    content.push({ type: "image", data: thumbnail.base64, mimeType: thumbnail.mimeType });
 
     return { content };
   }
