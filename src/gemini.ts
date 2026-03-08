@@ -136,21 +136,21 @@ export async function generateImage(
 
 export async function editImage(
   prompt: string,
-  imageBase64: string,
-  mimeType: string,
+  images: Array<{ base64: string; mimeType: string }>,
   options?: GenerateOptions
 ): Promise<ImageResult> {
   const ai = getClient();
+
+  const imageParts = images.map((img) => ({
+    inlineData: { data: img.base64, mimeType: img.mimeType },
+  }));
 
   const response = await ai.models.generateContent({
     model: MODEL,
     contents: [
       {
         role: "user",
-        parts: [
-          { inlineData: { data: imageBase64, mimeType } },
-          { text: prompt },
-        ],
+        parts: [...imageParts, { text: prompt }],
       },
     ],
     config: buildConfig(options),

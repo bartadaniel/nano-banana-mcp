@@ -73,6 +73,11 @@ server.registerTool(
     inputSchema: {
       prompt: z.string().describe("What to change in the image"),
       filePath: z.string().describe("Path to the source image"),
+      additionalFilePaths: z
+        .array(z.string())
+        .max(2)
+        .optional()
+        .describe("Additional image paths for multi-image editing (up to 2)"),
       aspectRatio: z
         .enum(ASPECT_RATIOS)
         .optional()
@@ -83,10 +88,18 @@ server.registerTool(
         .describe("Image size (512, 1K, 2K, 4K)"),
     },
   },
-  async ({ prompt, filePath, aspectRatio, size }) => {
-    const { base64: inputBase64, mimeType: inputMime } =
-      await readImageAsBase64(filePath);
-    const result = await editImage(prompt, inputBase64, inputMime, { aspectRatio, size });
+  async ({ prompt, filePath, additionalFilePaths, aspectRatio, size }) => {
+    const primary = await readImageAsBase64(filePath);
+    const images = [{ base64: primary.base64, mimeType: primary.mimeType }];
+
+    if (additionalFilePaths) {
+      for (const p of additionalFilePaths) {
+        const img = await readImageAsBase64(p);
+        images.push({ base64: img.base64, mimeType: img.mimeType });
+      }
+    }
+
+    const result = await editImage(prompt, images, { aspectRatio, size });
     const savedPath = await saveImage(result.base64, result.mimeType, prompt);
     const thumbnail = await createThumbnail(result.base64, result.mimeType);
 
