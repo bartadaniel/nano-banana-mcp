@@ -33,6 +33,8 @@ function getClient(): GoogleGenAI {
 export interface GenerateOptions {
   aspectRatio?: string;
   size?: string;
+  negativePrompt?: string;
+  systemInstruction?: string;
 }
 
 export interface ImageResult {
@@ -53,7 +55,16 @@ function buildConfig(options?: GenerateOptions): GenerateContentConfig {
     config.imageConfig = imageConfig;
   }
 
+  if (options?.systemInstruction) {
+    config.systemInstruction = options.systemInstruction;
+  }
+
   return config;
+}
+
+function applyNegativePrompt(prompt: string, negativePrompt?: string): string {
+  if (!negativePrompt) return prompt;
+  return `${prompt}\n\n[Do NOT include: ${negativePrompt}]`;
 }
 
 function getValidCandidateParts(response: GenerateContentResponse, errorMessage: string): Part[] {
@@ -121,11 +132,12 @@ export async function generateImage(
   const ai = getClient();
   const count = options?.n ?? 1;
   const config = buildConfig(options);
+  const text = applyNegativePrompt(prompt, options?.negativePrompt);
 
   const generate = async (): Promise<ImageResult> => {
     const response = await ai.models.generateContent({
       model: MODEL,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: [{ text }] }],
       config,
     });
     return extractImageFromResponse(response);
@@ -140,6 +152,7 @@ export async function editImage(
   options?: GenerateOptions
 ): Promise<ImageResult> {
   const ai = getClient();
+  const text = applyNegativePrompt(prompt, options?.negativePrompt);
 
   const imageParts = images.map((img) => ({
     inlineData: { data: img.base64, mimeType: img.mimeType },
@@ -150,7 +163,7 @@ export async function editImage(
     contents: [
       {
         role: "user",
-        parts: [...imageParts, { text: prompt }],
+        parts: [...imageParts, { text }],
       },
     ],
     config: buildConfig(options),
@@ -162,7 +175,8 @@ export async function editImage(
 export async function describeImage(
   imageBase64: string,
   mimeType: string,
-  question?: string
+  question?: string,
+  systemInstruction?: string
 ): Promise<string> {
   const ai = getClient();
 
@@ -179,6 +193,7 @@ export async function describeImage(
         ],
       },
     ],
+    ...(systemInstruction ? { config: { systemInstruction } } : {}),
   });
 
   const parts = getValidCandidateParts(response, "No description from Gemini");

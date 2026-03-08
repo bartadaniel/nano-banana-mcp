@@ -44,10 +44,18 @@ server.registerTool(
         .max(4)
         .optional()
         .describe("Number of images to generate (1-4, default 1)"),
+      negativePrompt: z
+        .string()
+        .optional()
+        .describe("Things to exclude from the generated image"),
+      systemInstruction: z
+        .string()
+        .optional()
+        .describe("System instruction to guide the model's behavior"),
     },
   },
-  async ({ prompt, aspectRatio, size, n }) => {
-    const results = await generateImage(prompt, { aspectRatio, size, n });
+  async ({ prompt, aspectRatio, size, n, negativePrompt, systemInstruction }) => {
+    const results = await generateImage(prompt, { aspectRatio, size, n, negativePrompt, systemInstruction });
 
     const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [];
 
@@ -86,9 +94,17 @@ server.registerTool(
         .enum(SIZES)
         .optional()
         .describe("Image size (512, 1K, 2K, 4K)"),
+      negativePrompt: z
+        .string()
+        .optional()
+        .describe("Things to exclude from the edited image"),
+      systemInstruction: z
+        .string()
+        .optional()
+        .describe("System instruction to guide the model's behavior"),
     },
   },
-  async ({ prompt, filePath, additionalFilePaths, aspectRatio, size }) => {
+  async ({ prompt, filePath, additionalFilePaths, aspectRatio, size, negativePrompt, systemInstruction }) => {
     const primary = await readImageAsBase64(filePath);
     const images = [{ base64: primary.base64, mimeType: primary.mimeType }];
 
@@ -99,7 +115,7 @@ server.registerTool(
       }
     }
 
-    const result = await editImage(prompt, images, { aspectRatio, size });
+    const result = await editImage(prompt, images, { aspectRatio, size, negativePrompt, systemInstruction });
     const savedPath = await saveImage(result.base64, result.mimeType, prompt);
     const thumbnail = await createThumbnail(result.base64, result.mimeType);
 
@@ -125,11 +141,15 @@ server.registerTool(
         .string()
         .optional()
         .describe("Specific question about the image"),
+      systemInstruction: z
+        .string()
+        .optional()
+        .describe("System instruction to guide the model's behavior"),
     },
   },
-  async ({ filePath, question }) => {
+  async ({ filePath, question, systemInstruction }) => {
     const { base64, mimeType } = await readImageAsBase64(filePath);
-    const description = await describeImage(base64, mimeType, question);
+    const description = await describeImage(base64, mimeType, question, systemInstruction);
 
     return {
       content: [{ type: "text" as const, text: description }],
