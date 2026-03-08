@@ -2,6 +2,7 @@ import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { resolve, extname, basename, sep } from "node:path";
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
+import { AccessDeniedError, ImageNotFoundError } from "./errors.js";
 
 const OUTPUT_DIR = process.env.OUTPUT_DIR || resolve(homedir(), "nano-banana-output");
 
@@ -83,9 +84,7 @@ function assertPathAllowed(resolvedPath: string): void {
   );
 
   if (!isAllowed) {
-    throw new Error(
-      `Access denied: ${resolvedPath} is outside allowed directories`
-    );
+    throw new AccessDeniedError(resolvedPath, allowedDirs);
   }
 }
 
@@ -118,7 +117,11 @@ function resolveImagePath(filePath: string): string {
     return fromOutputBase;
   }
 
-  throw new Error(
-    `Image not found: ${filePath} (tried absolute, relative to cwd, and relative to output dir)`
-  );
+  const triedPaths = [
+    filePath,
+    resolve(process.cwd(), filePath),
+    resolve(OUTPUT_DIR, filePath),
+    resolve(OUTPUT_DIR, basename(filePath)),
+  ];
+  throw new ImageNotFoundError(filePath, triedPaths);
 }

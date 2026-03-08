@@ -5,6 +5,12 @@ import {
   type ImageConfig,
   type Part,
 } from "@google/genai";
+import {
+  GeminiError,
+  PromptBlockedError,
+  GenerationStoppedError,
+  NoImageError,
+} from "./errors.js";
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash-image";
 const DESCRIBE_MODEL = process.env.GEMINI_DESCRIBE_MODEL || "gemini-2.5-flash";
@@ -14,7 +20,7 @@ let client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
   if (!client) {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
+    if (!apiKey) throw new GeminiError("GEMINI_API_KEY is not set");
     client = new GoogleGenAI({ apiKey });
   }
   return client;
@@ -50,13 +56,11 @@ function getValidCandidateParts(response: GenerateContentResponse, errorMessage:
   const blockReason = response.promptFeedback?.blockReason;
   if (blockReason) {
     const detail = response.promptFeedback?.blockReasonMessage;
-    throw new Error(
-      `Gemini blocked the prompt: ${blockReason}${detail ? ` — ${detail}` : ""}`
-    );
+    throw new PromptBlockedError(blockReason, detail);
   }
 
   const candidates = response.candidates ?? [];
-  if (candidates.length === 0) throw new Error(errorMessage);
+  if (candidates.length === 0) throw new GeminiError(errorMessage);
 
   for (const candidate of candidates) {
     const finishReason = candidate.finishReason;
@@ -71,8 +75,8 @@ function getValidCandidateParts(response: GenerateContentResponse, errorMessage:
       const detail = c.finishMessage;
       return detail ? `${reason} — ${detail}` : reason;
     })
-    .join("; ");
-  throw new Error(`Gemini stopped generating: ${reasons}`);
+    .filter((r): r is string => r !== undefined);
+  throw new GenerationStoppedError(reasons);
 }
 
 function extractImageFromResponse(response: GenerateContentResponse): ImageResult {
@@ -84,10 +88,10 @@ function extractImageFromResponse(response: GenerateContentResponse): ImageResul
   for (const part of parts) {
     if (part.inlineData) {
       if (!part.inlineData.data) {
-        throw new Error("Gemini returned image data with missing base64 content");
+        throw new NoImageError("Gemini returned image data with missing base64 content");
       }
       if (!part.inlineData.mimeType) {
-        throw new Error("Gemini returned image data with missing MIME type");
+        throw new NoImageError("Gemini returned image data with missing MIME type");
       }
       imageData = {
         base64: part.inlineData.data,
@@ -98,7 +102,7 @@ function extractImageFromResponse(response: GenerateContentResponse): ImageResul
     }
   }
 
-  if (!imageData) throw new Error("No image in Gemini response");
+  if (!imageData) throw new NoImageError();
 
   return {
     ...imageData,
@@ -175,7 +179,7 @@ export async function describeImage(
     .map((part) => part.text as string)
     .join("\n");
 
-  if (!text) throw new Error("No description from Gemini");
+  if (!text) throw new GeminiError("No description from Gemini");
 
   return text;
 }
