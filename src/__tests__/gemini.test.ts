@@ -182,7 +182,7 @@ describe("buildConfig via generateImage", () => {
 
   // Per SDK docs: aspectRatio supported values for Gemini image models
   it("passes documented aspectRatio values through to config", async () => {
-    const documented = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+    const documented = ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"];
     for (const ar of documented) {
       let capturedConfig: Record<string, unknown> = {};
       _setClientForTesting(makeMockClient((req) => {
