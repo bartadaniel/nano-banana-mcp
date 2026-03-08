@@ -208,6 +208,10 @@ export async function describeImage(
   return text;
 }
 
+export function _setClientForTesting(mockClient: GoogleGenAI): void {
+  client = mockClient;
+}
+
 export function getModelName(): string {
   return MODEL;
 }

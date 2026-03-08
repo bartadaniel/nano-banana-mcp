@@ -12,7 +12,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "npm run build && node --test dist/__tests__/*.test.js"
   },
   "keywords": [
     "mcp",
