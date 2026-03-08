@@ -21,6 +21,8 @@ const MIME_MAP: Record<string, string> = {
   ".tiff": "image/tiff",
   ".tif": "image/tiff",
   ".svg": "image/svg+xml",
+  ".heic": "image/heic",
+  ".heif": "image/heif",
 };
 
 const EXT_MAP: Record<string, string> = {
@@ -31,6 +33,8 @@ const EXT_MAP: Record<string, string> = {
   "image/bmp": "bmp",
   "image/tiff": "tiff",
   "image/svg+xml": "svg",
+  "image/heic": "heic",
+  "image/heif": "heif",
 };
 
 function generateFilename(prompt: string, ext: string): string {

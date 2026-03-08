@@ -78,6 +78,20 @@ describe("saveImage", () => {
     assert(path.endsWith(".webp"));
   });
 
+  it("saves HEIC with .heic extension for image/heic", async () => {
+    const base64 = RED_PIXEL_PNG.toString("base64");
+    const path = await saveImage(base64, "image/heic", "test-heic");
+    savedPaths.push(path);
+    assert(path.endsWith(".heic"));
+  });
+
+  it("saves HEIF with .heif extension for image/heif", async () => {
+    const base64 = RED_PIXEL_PNG.toString("base64");
+    const path = await saveImage(base64, "image/heif", "test-heif");
+    savedPaths.push(path);
+    assert(path.endsWith(".heif"));
+  });
+
   it("falls back to .png for unknown MIME type", async () => {
     const base64 = RED_PIXEL_PNG.toString("base64");
     const path = await saveImage(base64, "image/unknown-format", "test-fallback");
@@ -166,6 +180,23 @@ describe("readImageAsBase64", () => {
     { ext: ".tif", expectedMime: "image/tiff" },
     { ext: ".svg", expectedMime: "image/svg+xml" },
   ];
+
+  // HEIC/HEIF support for Apple device images (accepted by Gemini API)
+  const HEIC_CASES: Array<{ ext: string; expectedMime: string }> = [
+    { ext: ".heic", expectedMime: "image/heic" },
+    { ext: ".heif", expectedMime: "image/heif" },
+  ];
+
+  for (const { ext, expectedMime } of HEIC_CASES) {
+    it(`detects ${expectedMime} for ${ext} extension`, async () => {
+      const filePath = join(testDir, `test${ext}`);
+      // HEIC files can't be created by sharp, but MIME detection is extension-based
+      await writeFile(filePath, RED_PIXEL_PNG);
+
+      const result = await readImageAsBase64(filePath);
+      assert.equal(result.mimeType, expectedMime);
+    });
+  }
 
   for (const { ext, expectedMime } of MIME_CASES) {
     it(`detects ${expectedMime} for ${ext} extension`, async () => {
