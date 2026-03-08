@@ -82,15 +82,15 @@ server.registerTool(
 server.registerTool(
   "edit_image",
   {
-    description: `Edit an existing image based on a text instruction using Google Gemini. Default model: ${getModelName()}. Supports multi-image input (up to 3 total). Response contains a thumbnail preview; full-res image is saved to ${getOutputDir()}.`,
+    description: `Edit an existing image based on a text instruction using Google Gemini. Default model: ${getModelName()}. Supports multi-image input (up to 10 total). Response contains a thumbnail preview; full-res image is saved to ${getOutputDir()}.`,
     inputSchema: {
       prompt: z.string().describe("What to change in the image"),
       filePath: z.string().describe("Path to the source image"),
       additionalFilePaths: z
         .array(z.string())
-        .max(2)
+        .max(9)
         .optional()
-        .describe("Additional image paths for multi-image editing (up to 2)"),
+        .describe("Additional image paths for multi-image editing (up to 9)"),
       aspectRatio: z
         .enum(ASPECT_RATIOS)
         .optional()

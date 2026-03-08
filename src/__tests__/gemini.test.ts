@@ -394,7 +394,7 @@ describe("editImage", () => {
     assert.equal(textPart.text, "make brighter");
   });
 
-  it("sends multiple images (up to 3 per API docs for 2.5 Flash Image)", async () => {
+  it("sends multiple images as inlineData parts", async () => {
     let capturedParts: unknown[] = [];
     _setClientForTesting(makeMockClient((req) => {
       const contents = req.contents as Array<{ parts: unknown[] }>;
@@ -418,6 +418,31 @@ describe("editImage", () => {
     }
     const textPart = capturedParts[3] as { text: string };
     assert.equal(textPart.text, "combine these");
+  });
+
+  // Per official Google docs: gemini-3.1-flash-image-preview supports up to 14 reference images
+  it("sends up to 10 images (1 primary + 9 additional per tool schema)", async () => {
+    let capturedParts: unknown[] = [];
+    _setClientForTesting(makeMockClient((req) => {
+      const contents = req.contents as Array<{ parts: unknown[] }>;
+      capturedParts = contents[0].parts;
+      return makeImageResponse();
+    }));
+
+    const images = Array.from({ length: 10 }, (_, i) => ({
+      base64: `img${i}`,
+      mimeType: "image/png",
+    }));
+    await editImage("combine all", images);
+
+    // 10 inlineData parts + 1 text part = 11 total
+    assert.equal(capturedParts.length, 11);
+    for (let i = 0; i < 10; i++) {
+      const part = capturedParts[i] as { inlineData: { data: string; mimeType: string } };
+      assert.equal(part.inlineData.data, `img${i}`);
+    }
+    const textPart = capturedParts[10] as { text: string };
+    assert.equal(textPart.text, "combine all");
   });
 
   it("returns extracted image result", async () => {
