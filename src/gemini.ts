@@ -12,7 +12,7 @@ import {
   NoImageError,
 } from "./errors.js";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash-image";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-image-preview";
 const DESCRIBE_MODEL = process.env.GEMINI_DESCRIBE_MODEL || "gemini-2.5-flash";
 
 let client: GoogleGenAI | null = null;
@@ -21,7 +21,11 @@ function getClient(): GoogleGenAI {
   if (!client) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new GeminiError("GEMINI_API_KEY is not set");
-    client = new GoogleGenAI({ apiKey });
+    const baseUrl = process.env.GEMINI_BASE_URL;
+    client = new GoogleGenAI({
+      apiKey,
+      ...(baseUrl ? { httpOptions: { baseUrl } } : {}),
+    });
   }
   return client;
 }
