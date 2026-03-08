@@ -37,20 +37,30 @@ server.registerTool(
         .enum(SIZES)
         .optional()
         .describe("Image size (512, 1K, 2K, 4K)"),
+      n: z
+        .number()
+        .int()
+        .min(1)
+        .max(4)
+        .optional()
+        .describe("Number of images to generate (1-4, default 1)"),
     },
   },
-  async ({ prompt, aspectRatio, size }) => {
-    const result = await generateImage(prompt, { aspectRatio, size });
-    const filePath = await saveImage(result.base64, result.mimeType, prompt);
-    const thumbnail = await createThumbnail(result.base64, result.mimeType);
+  async ({ prompt, aspectRatio, size, n }) => {
+    const results = await generateImage(prompt, { aspectRatio, size, n });
 
-    const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [
-      { type: "text", text: `Image saved to: ${filePath}` },
-    ];
-    if (result.text) {
-      content.push({ type: "text", text: result.text });
+    const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [];
+
+    for (const result of results) {
+      const filePath = await saveImage(result.base64, result.mimeType, prompt);
+      const thumbnail = await createThumbnail(result.base64, result.mimeType);
+
+      content.push({ type: "text", text: `Image saved to: ${filePath}` });
+      if (result.text) {
+        content.push({ type: "text", text: result.text });
+      }
+      content.push({ type: "image", data: thumbnail.base64, mimeType: thumbnail.mimeType });
     }
-    content.push({ type: "image", data: thumbnail.base64, mimeType: thumbnail.mimeType });
 
     return { content };
   }

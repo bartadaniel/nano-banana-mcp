@@ -35,7 +35,7 @@ export interface GenerateOptions {
   size?: string;
 }
 
-interface ImageResult {
+export interface ImageResult {
   base64: string;
   mimeType: string;
   text?: string;
@@ -116,17 +116,22 @@ function extractImageFromResponse(response: GenerateContentResponse): ImageResul
 
 export async function generateImage(
   prompt: string,
-  options?: GenerateOptions
-): Promise<ImageResult> {
+  options?: GenerateOptions & { n?: number }
+): Promise<ImageResult[]> {
   const ai = getClient();
+  const count = options?.n ?? 1;
+  const config = buildConfig(options);
 
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: buildConfig(options),
-  });
+  const generate = async (): Promise<ImageResult> => {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config,
+    });
+    return extractImageFromResponse(response);
+  };
 
-  return extractImageFromResponse(response);
+  return Promise.all(Array.from({ length: count }, () => generate()));
 }
 
 export async function editImage(
