@@ -4,8 +4,8 @@ import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { generateImage, editImage, describeImage } from "./gemini.js";
-import { saveImage, readImageAsBase64, createThumbnail } from "./files.js";
+import { generateImage, editImage, describeImage, getModelName, getDescribeModelName } from "./gemini.js";
+import { saveImage, readImageAsBase64, createThumbnail, getOutputDir } from "./files.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -20,13 +20,13 @@ const server = new McpServer({
   version,
 });
 
-const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"] as const;
+const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] as const;
 const SIZES = ["512", "1K", "2K", "4K"] as const;
 
 server.registerTool(
   "generate_image",
   {
-    description: "Generate an image from a text prompt using Google Gemini",
+    description: `Generate an image from a text prompt using Google Gemini. Default model: ${getModelName()}. Supports batch generation (n=1-4). Response contains a thumbnail preview; full-res image is saved to ${getOutputDir()}.`,
     inputSchema: {
       prompt: z.string().describe("Text description of the image to generate"),
       aspectRatio: z
@@ -57,18 +57,23 @@ server.registerTool(
   async ({ prompt, aspectRatio, size, n, negativePrompt, systemInstruction }) => {
     const results = await generateImage(prompt, { aspectRatio, size, n, negativePrompt, systemInstruction });
 
-    const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [];
+    type ContentBlock = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+    const content: ContentBlock[] = [];
+    const imagesMeta: { filePath: string; mimeType: string }[] = [];
 
     for (const result of results) {
       const filePath = await saveImage(result.base64, result.mimeType, prompt);
       const thumbnail = await createThumbnail(result.base64, result.mimeType);
+      imagesMeta.push({ filePath, mimeType: result.mimeType });
 
-      content.push({ type: "text", text: `Image saved to: ${filePath}` });
       if (result.text) {
         content.push({ type: "text", text: result.text });
       }
       content.push({ type: "image", data: thumbnail.base64, mimeType: thumbnail.mimeType });
     }
+
+    const metadata = { model: getModelName(), count: results.length, images: imagesMeta };
+    content.unshift({ type: "text", text: JSON.stringify(metadata) });
 
     return { content };
   }
@@ -77,7 +82,7 @@ server.registerTool(
 server.registerTool(
   "edit_image",
   {
-    description: "Edit an existing image based on a text instruction using Google Gemini",
+    description: `Edit an existing image based on a text instruction using Google Gemini. Default model: ${getModelName()}. Supports multi-image input (up to 3 total). Response contains a thumbnail preview; full-res image is saved to ${getOutputDir()}.`,
     inputSchema: {
       prompt: z.string().describe("What to change in the image"),
       filePath: z.string().describe("Path to the source image"),
@@ -119,8 +124,10 @@ server.registerTool(
     const savedPath = await saveImage(result.base64, result.mimeType, prompt);
     const thumbnail = await createThumbnail(result.base64, result.mimeType);
 
-    const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [
-      { type: "text", text: `Edited image saved to: ${savedPath}` },
+    type ContentBlock = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+    const metadata = { model: getModelName(), count: 1, images: [{ filePath: savedPath, mimeType: result.mimeType }] };
+    const content: ContentBlock[] = [
+      { type: "text", text: JSON.stringify(metadata) },
     ];
     if (result.text) {
       content.push({ type: "text", text: result.text });
@@ -134,7 +141,7 @@ server.registerTool(
 server.registerTool(
   "describe_image",
   {
-    description: "Get a text description of an image using Google Gemini",
+    description: `Get a text description of an image using Google Gemini. Default model: ${getDescribeModelName()}.`,
     inputSchema: {
       filePath: z.string().describe("Path to the image"),
       question: z

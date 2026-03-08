@@ -207,3 +207,11 @@ export async function describeImage(
 
   return text;
 }
+
+export function getModelName(): string {
+  return MODEL;
+}
+
+export function getDescribeModelName(): string {
+  return DESCRIBE_MODEL;
+}

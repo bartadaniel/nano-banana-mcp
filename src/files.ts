@@ -7,6 +7,10 @@ import { AccessDeniedError, ImageNotFoundError } from "./errors.js";
 
 const OUTPUT_DIR = process.env.OUTPUT_DIR || resolve(homedir(), "nano-banana-output");
 
+export function getOutputDir(): string {
+  return OUTPUT_DIR;
+}
+
 const MIME_MAP: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
