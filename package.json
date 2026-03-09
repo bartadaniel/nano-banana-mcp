@@ -1,6 +1,6 @@
 {
   "name": "@daniel.barta/nano-banana-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Standalone MCP server for generating and editing images with Google Gemini",
   "type": "module",
   "main": "dist/index.js",
