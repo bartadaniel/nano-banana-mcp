@@ -7,7 +7,6 @@ import {
   NoImageError,
   FileError,
   ImageNotFoundError,
-  AccessDeniedError,
 } from "../errors.js";
 
 describe("GeminiError", () => {
@@ -82,13 +81,3 @@ describe("ImageNotFoundError", () => {
   });
 });
 
-describe("AccessDeniedError", () => {
-  it("stores filePath and allowedDirs", () => {
-    const err = new AccessDeniedError("/etc/passwd", ["/home", "/tmp"]);
-    assert.equal(err.name, "AccessDeniedError");
-    assert.equal(err.filePath, "/etc/passwd");
-    assert.deepEqual(err.allowedDirs, ["/home", "/tmp"]);
-    assert(err instanceof FileError);
-    assert(err instanceof Error);
-  });
-});

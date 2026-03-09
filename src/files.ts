@@ -1,9 +1,9 @@
 import { mkdir, writeFile, readFile } from "node:fs/promises";
-import { resolve, extname, basename, sep } from "node:path";
-import { existsSync, realpathSync } from "node:fs";
+import { resolve, extname, basename } from "node:path";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import sharp from "sharp";
-import { AccessDeniedError, ImageNotFoundError } from "./errors.js";
+import { ImageNotFoundError } from "./errors.js";
 
 const OUTPUT_DIR = process.env.OUTPUT_DIR || resolve(homedir(), "nano-banana-output");
 
@@ -71,58 +71,27 @@ export async function readImageAsBase64(
   return { base64: buffer.toString("base64"), mimeType };
 }
 
-function assertPathAllowed(resolvedPath: string): void {
-  const canonical = realpathSync(resolvedPath);
-
-  const allowedDirs: string[] = [];
-
-  try {
-    allowedDirs.push(realpathSync(process.cwd()));
-  } catch {
-    // cwd may not be resolvable in rare cases
-  }
-
-  try {
-    allowedDirs.push(realpathSync(resolve(OUTPUT_DIR)));
-  } catch {
-    // OUTPUT_DIR may not exist yet
-  }
-
-  const isAllowed = allowedDirs.some(
-    (dir) => canonical === dir || canonical.startsWith(dir + sep)
-  );
-
-  if (!isAllowed) {
-    throw new AccessDeniedError(resolvedPath, allowedDirs);
-  }
-}
-
 function resolveImagePath(filePath: string): string {
   // Try absolute path first
   if (existsSync(filePath)) {
-    const resolved = resolve(filePath);
-    assertPathAllowed(resolved);
-    return resolved;
+    return resolve(filePath);
   }
 
   // Try relative to cwd
   const fromCwd = resolve(process.cwd(), filePath);
   if (existsSync(fromCwd)) {
-    assertPathAllowed(fromCwd);
     return fromCwd;
   }
 
   // Try relative to output dir
   const fromOutput = resolve(OUTPUT_DIR, filePath);
   if (existsSync(fromOutput)) {
-    assertPathAllowed(fromOutput);
     return fromOutput;
   }
 
   // Try just the basename in output dir
   const fromOutputBase = resolve(OUTPUT_DIR, basename(filePath));
   if (existsSync(fromOutputBase)) {
-    assertPathAllowed(fromOutputBase);
     return fromOutputBase;
   }
 

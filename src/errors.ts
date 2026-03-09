@@ -57,15 +57,3 @@ export class ImageNotFoundError extends FileError {
     this.triedPaths = triedPaths;
   }
 }
-
-export class AccessDeniedError extends FileError {
-  filePath: string;
-  allowedDirs: string[];
-
-  constructor(filePath: string, allowedDirs: string[]) {
-    super(`Access denied: ${filePath} is outside allowed directories (${allowedDirs.join(", ")})`);
-    this.name = "AccessDeniedError";
-    this.filePath = filePath;
-    this.allowedDirs = allowedDirs;
-  }
-}

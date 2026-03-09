@@ -6,7 +6,7 @@ import { mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import sharp from "sharp";
 import { saveImage, readImageAsBase64, createThumbnail, getOutputDir } from "../files.js";
-import { ImageNotFoundError, AccessDeniedError } from "../errors.js";
+import { ImageNotFoundError } from "../errors.js";
 
 // ---------------------------------------------------------------------------
 // Test fixtures — real PNG images for realistic testing
@@ -159,7 +159,6 @@ describe("readImageAsBase64", () => {
   let testDir: string;
 
   before(async () => {
-    // Use a subdirectory of cwd so files pass assertPathAllowed security check
     testDir = join(process.cwd(), `.test-tmp-${Date.now()}`);
     await mkdir(testDir, { recursive: true });
   });
@@ -264,21 +263,14 @@ describe("readImageAsBase64 errors", () => {
     );
   });
 
-  it("throws AccessDeniedError for file outside allowed directories", async () => {
-    // Create a file in /tmp which is outside cwd and OUTPUT_DIR
-    const tmpFile = join(tmpdir(), `denied-test-${Date.now()}.png`);
+  it("reads file from any directory (no path restriction)", async () => {
+    const tmpFile = join(tmpdir(), `access-test-${Date.now()}.png`);
     await writeFile(tmpFile, RED_PIXEL_PNG);
 
     try {
-      await assert.rejects(
-        () => readImageAsBase64(tmpFile),
-        (err: unknown) => {
-          assert(err instanceof AccessDeniedError);
-          assert.equal(err.filePath, tmpFile);
-          assert(err.allowedDirs.length > 0);
-          return true;
-        }
-      );
+      const result = await readImageAsBase64(tmpFile);
+      assert.equal(result.mimeType, "image/png");
+      assert.equal(result.base64, RED_PIXEL_PNG.toString("base64"));
     } finally {
       await rm(tmpFile);
     }
