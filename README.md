@@ -53,7 +53,7 @@ Generate an image from a text prompt. Supports batch generation (up to 4 images)
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `prompt` | string | Yes | Text description of the image |
-| `aspectRatio` | string | No | Aspect ratio (`1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`) |
+| `aspectRatio` | string | No | Aspect ratio (`1:1`, `1:4`, `1:8`, `2:3`, `3:2`, `3:4`, `4:1`, `4:3`, `4:5`, `5:4`, `8:1`, `9:16`, `16:9`, `21:9`) |
 | `size` | string | No | Image size (`512px`, `1K`, `2K`, `4K`) |
 | `n` | number | No | Number of images to generate (1-4, default 1) |
 | `negativePrompt` | string | No | Things to exclude from the generated image |
@@ -61,14 +61,14 @@ Generate an image from a text prompt. Supports batch generation (up to 4 images)
 
 ### `edit_image`
 
-Edit an existing image based on a text instruction. Supports multi-image input (up to 3 images total). Response contains a thumbnail preview; full-res image is saved to disk.
+Edit an existing image based on a text instruction. Supports multi-image input (up to 10 images total). Response contains a thumbnail preview; full-res image is saved to disk.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `prompt` | string | Yes | What to change |
 | `filePath` | string | Yes | Path to the source image |
-| `additionalFilePaths` | string[] | No | Additional image paths (up to 2) for multi-image editing |
-| `aspectRatio` | string | No | Aspect ratio (`1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`) |
+| `additionalFilePaths` | string[] | No | Additional image paths (up to 9) for multi-image editing |
+| `aspectRatio` | string | No | Aspect ratio (`1:1`, `1:4`, `1:8`, `2:3`, `3:2`, `3:4`, `4:1`, `4:3`, `4:5`, `5:4`, `8:1`, `9:16`, `16:9`, `21:9`) |
 | `size` | string | No | Image size (`512px`, `1K`, `2K`, `4K`) |
 | `negativePrompt` | string | No | Things to exclude from the edited image |
 | `systemInstruction` | string | No | System instruction to guide the model |
@@ -82,6 +82,21 @@ Get a text description of an image.
 | `filePath` | string | Yes | Path to the image |
 | `question` | string | No | Specific question about the image |
 | `systemInstruction` | string | No | System instruction to guide the model |
+
+## Supported Input Formats
+
+For `edit_image` and `describe_image`, the following image formats are supported:
+
+JPEG, PNG, WebP, GIF, BMP, TIFF, SVG, HEIC/HEIF
+
+## File Path Resolution
+
+When you provide a file path for editing or describing, the server searches for the file in this order:
+
+1. Absolute path as given
+2. Relative to the current working directory
+3. Relative to the output directory
+4. Basename only in the output directory
 
 ## Thumbnails
 
